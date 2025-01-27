@@ -16,7 +16,5 @@ ENV SCONE_LOG=DEBUG
 
 WORKDIR /openmessaging-benchmark-0.0.1-SNAPSHOT
 
-ENTRYPOINT ["./bin/benchmark"]
-# --drivers driver-pravega/pravega.yaml
-
+# docker run --rm -it --network=host --device=/dev/sgx_enclave -v ${PWD}/omb-container/omb/sgx/:/results omb_scone /bin/sh -c "./bin/benchmark workloads/pravega_simple.yaml --drivers driver-pravega/pravega.yaml && ls /openmessaging-benchmark-0.0.1-SNAPSHOT/* && cp /openmessaging-benchmark-0.0.1-SNAPSHOT/*.yaml /results/"
 

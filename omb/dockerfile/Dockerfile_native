@@ -1,0 +1,18 @@
+FROM alpine:3.18 AS builder
+
+ENV LANG=C.UTF-8
+RUN apk update && apk upgrade && apk add git maven
+RUN git clone https://github.com/rcrane/om-benchmark.git omb
+RUN cd omb && mvn clean verify package -X -DskipTests -Dspotbugs.skip=true
+
+RUN mv /omb/package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz /
+
+RUN tar -xzvf openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz
+
+RUN rm -rf /omb
+RUN rm /openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz
+
+WORKDIR /openmessaging-benchmark-0.0.1-SNAPSHOT
+
+# docker run --rm -it --network=host -v ${PWD}/omb/native/:/results omb_native /bin/sh -c "./bin/benchmark workloads/neardata/* --drivers driver-pravega/pravega.yaml && ls /openmessaging-benchmark-0.0.1-SNAPSHOT/* && cp /openmessaging-benchmark-0.0.1-SNAPSHOT/*.yaml /results/"
+
