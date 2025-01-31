@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: neardata2
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: selfsigned-cert
+  namespace: neardata2
+spec:
+  secretName: selfsigned-cert-tls
+  commonName: pravega-webhook-svc.neardata2.svc.cluster.local
+  dnsNames:
+    - pravega-webhook-svc
+    - pravega-webhook-svc.neardata2.svc.cluster.local
+    - pravega-webhook-svc.neardata2.svc
+  issuerRef:
+    name: selfsigned-issuer

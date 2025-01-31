@@ -1,0 +1,86 @@
+
+sudo chmod 0666 /dev/sgx_enclave /dev/sgx_provision /dev/sgx_vepc
+
+cd robert/
+git clone https://github.com/pravega/charts.git
+cd charts/
+ls
+cd ..
+mv charts pravega-charts
+cd pravega-charts/
+ls
+
+
+
+
+helm repo add pravega https://charts.pravega.io
+helm repo update
+
+kubectl create namespace neardata
+
+kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.16.2/cert-manager.yaml -n neardata
+kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.yaml -n neardata
+
+helm install zookeeper-operator pravega/zookeeper-operator  --namespace neardata
+helm install zookeeper pravega/zookeeper  --namespace neardata
+
+wget https://github.com/pravega/bookkeeper-operator/raw/master/config/certmanager/certificate.yaml
+vim certificate.yaml
+mv certificate.yaml bookkeeper-cert.yaml
+kubectl apply -f bookkeeper-cert.yaml
+
+helm install bookkeeper-operator pravega/bookkeeper-operator --set webhookCert.certName=selfsigned-cert-bk --set webhookCert.secretName=selfsigned-cert-tls-bk -n neardata
+helm install bookkeeper pravega/bookkeeper -n neardata
+
+
+helm repo add stable https://charts.helm.sh/stable
+helm install stable/nfs-server-provisioner --generate-name -n neardata
+
+echo 'kind: PersistentVolumeClaim 
+apiVersion: v1 
+metadata: 
+  name: pravega-tier2 
+  namespace: neardata
+spec: 
+  storageClassName: "nfs" 
+  accessModes: 
+    - ReadWriteMany 
+  resources: 
+    requests:
+      storage: 5Gi' > tier2_pvc.yaml
+kubectl apply -f tier2_pvc.yaml 
+
+
+wget https://github.com/pravega/pravega-operator/raw/master/config/certmanager/certificate.yaml
+vim certificate.yaml 
+mv certificate.yaml pravega-op-cert.yaml
+kubectl apply -f pravega-op-cert.yaml 
+
+helm install pravega-operator pravega/pravega-operator --set webhookCert.certName=selfsigned-cert --set webhookCert.secretName=selfsigned-cert-tls -n neardata
+helm install pravega pravega/pravega -n neardata
+
+
+kubectl port-forward pravega-operator-7dbf578dcd-7sjl4 -n neardata 9090:9090
+kubectl port-forward pravega-pravega-controller-65c576f4f7-pjhcn -n neardata 9090
+
+
+
+## Get the benchmark
+
+git clone https://github.com/neardata-eu/pravega-rust-benchmark.git
+cd pravega-rust-benchmark/
+cargo build
+./target/debug/pravega-rust-benchmark config.yaml
+
+## Try using the image by Andre Miguel
+
+docker login registry.scontain.com -u rcrane -p 7uxVUGq1FMSQAMQ92wnk
+docker run --rm -it -v ./pravega-rust-benchmark:/pravega registry.scontain.com/amiguel/neardatapublic/pravega:rust-benchmark 
+
+## Sconify the benchmark manually
+
+docker run --rm -it --device=/dev/sgx_enclave -v /home/kluster-team/robert/pravega-rust-benchmark:/pravega registry.scontain.com:5050/sconecuratedimages/crosscompilers:ubuntu
+
+	Run scone cargo build inside
+
+SCONE_STACK=8M SCONE_HEAP=8G SCONE_VERSION=1 ./target/x86_64-scone-linux-musl/debug/pravega-rust-benchmark config.yaml 

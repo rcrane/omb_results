@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer-bk
+  namespace: neardata2
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: selfsigned-cert-bk
+  namespace: neardata2
+spec:
+  secretName: selfsigned-cert-tls-bk
+  commonName: bookkeeper-webhook-svc.neardata2.svc.cluster.local
+  dnsNames:
+    - bookkeeper-webhook-svc 
+    - bookkeeper-webhook-svc.neardata2.svc.cluster.local
+    - bookkeeper-webhook-svc.neardata2.svc
+  issuerRef:
+    name: selfsigned-issuer-bk

@@ -1,0 +1,12 @@
+kind: PersistentVolumeClaim 
+apiVersion: v1 
+metadata: 
+  name: pravega-tier2 
+  namespace: neardata2
+spec: 
+  storageClassName: "nfs" 
+  accessModes: 
+    - ReadWriteMany 
+  resources: 
+    requests:
+      storage: 10Gi
