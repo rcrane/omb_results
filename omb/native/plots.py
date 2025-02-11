@@ -4,9 +4,11 @@ from matplotlib import pyplot as plt
 def set_label(row):
     if row['Message_Size'] > 1000:
         val = int(row['Message_Size'] / 1024)
-        return str( val ) + "KB"
+        label = str( val ) + "KB"
     else:
-        return str( int(row['Message_Size']) ) + "B"
+        label = str( int(row['Message_Size']) ) + "B"
+    
+    return str(int(row['Production_Rate'])) + ' m/s ' + label
 
 def plot_row(row):
     df = pd.read_csv('result.csv')
