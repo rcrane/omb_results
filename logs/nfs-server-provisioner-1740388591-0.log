@@ -1,6 +1,0 @@
-I0224 09:16:43.079724       1 main.go:64] Provisioner cluster.local/nfs-server-provisioner-1740388591 specified
-I0224 09:16:43.079820       1 main.go:88] Setting up NFS server!
-I0224 09:16:43.259878       1 server.go:149] starting RLIMIT_NOFILE rlimit.Cur 1048576, rlimit.Max 1048576
-I0224 09:16:43.259919       1 server.go:160] ending RLIMIT_NOFILE rlimit.Cur 1048576, rlimit.Max 1048576
-I0224 09:16:43.260530       1 server.go:134] Running NFS server!
-I0224 09:16:54.035625       1 provision.go:450] using service SERVICE_NAME=nfs-server-provisioner-1740388591 cluster IP 10.104.45.211 as NFS server IP
