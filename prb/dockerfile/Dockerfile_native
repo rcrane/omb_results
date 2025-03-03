@@ -1,0 +1,19 @@
+FROM ubuntu:24.04 AS builder
+
+ENV LANG=C.UTF-8
+
+RUN apt update && apt -y install git curl gcc
+RUN git clone https://github.com/rcrane/pravega-rust-benchmark.git prb
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN . $HOME/.cargo/env && cd prb && cargo build --release
+
+FROM ubuntu:24.04
+
+COPY --from=builder /prb /prb
+WORKDIR /prb
+
+
+
+# docker run --rm -it --network=host -v ${PWD}/prb/native/:/results prb_native /bin/sh -c "./target/release/pravega-rust-benchmark workloads/TC31.yaml && cp /prb/*.yaml /results/"
+
+
