@@ -2,119 +2,143 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+########################################################################
+# Cumulative Distribution Function (CDF) Plots by Event Size
+########################################################################
+
 def get_dfs(data):
-    #data1 = data[ data['Security'] == 'Non-Secure' ]
-    #data2 = data[ data['Security'] == 'Secure' ]
-    data1 = data[ (data['Security'] == 'Non-Secure') & (data['Test_Case'] != 'TC12') ]
-    data2 = data[ (data['Security'] == 'Secure') & (data['Test_Case'] != 'TC12') ]
+    data1 = data[ data['Security'] == 'Non-Secure' ]
+    data2 = data[ data['Security'] == 'Secure' ]
+    return data1, data2
+
+def split_event_size(data):
+    data1 = data[ data['Message_Size'] == 100 ]
+    data2 = data[ data['Message_Size'] == 1024 ]
+    data3 = data[ data['Message_Size'] == 10240 ]
+    data4 = data[ data['Message_Size'] == 102400 ]
+    return [data1, data2, data3, data4]
+
+def format_label(size):
+    if int(size) == 100:
+        return '100B'
+    elif int(size) == 1024:
+        return '1KB'
+    elif int(size) == 10240:
+        return '10KB'
+    elif int(size) == 102400:
+        return '100KB'
+
+def subplot_cdf(data1, data2, row, title):
+    fig, axs = plt.subplots(2, 2)
+
+    spr1 = split_event_size(data1)
+    spr2 = split_event_size(data2)
+    a = 0
+    for i in range(2):
+        for j in range(2):
+            lbl = 'Event Size = ' + format_label(spr1[a]['Message_Size'].iloc[0])
+            
+            count, bins_count = np.histogram(spr1[a][row], bins=10)
+            pdf = count / sum(count)
+            cdf = np.cumsum(pdf)
+            axs[i][j].plot(bins_count[1:], cdf, label='Non-Secured')
+            
+            count, bins_count = np.histogram(spr2[a][row], bins=10)
+            pdf = count / sum(count)
+            cdf = np.cumsum(pdf)
+            axs[i][j].plot(bins_count[1:], cdf, label='Secured')
+
+            axs[i][j].set_xlabel('Time (ms)')
+            axs[i][j].set_title(lbl)
+            axs[i][j].set_ylim(0, 1)
+            axs[i][j].legend()
+            axs[i][j].grid(True)
+            a += 1;
+
+    fig.suptitle(title)
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig(title + '.png', bbox_inches='tight')
+    plt.clf()
+    print('Plot ' + title + '.png generated')
+
+
+df = pd.read_csv('result.csv')
+df1, df2 = get_dfs(df)
+
+subplot_cdf(df1, df2, 'OMB_Latency_50', 'CDF Write Latencies 50 pct')
+subplot_cdf(df1, df2, 'OMB_Latency_75', 'CDF Write Latencies 75 pct')
+subplot_cdf(df1, df2, 'OMB_Latency_95', 'CDF Write Latencies 95 pct')
+subplot_cdf(df1, df2, 'OMB_Latency_99', 'CDF Write Latencies 99 pct')
+
+########################################################################
+# Mean Plots by Event Size
+########################################################################
+
+def get_dfs(data):
+    data1 = data[ data['Security'] == 'Non-Secure' ]
+    data2 = data[ data['Security'] == 'Secure' ]
     return data1, data2
 
 def get_security(data):
     return data['Security'].iloc[0]
 
+def split_event_size(data):
+    data1 = data[ data['Message_Size'] == 100 ]
+    data2 = data[ data['Message_Size'] == 1024 ]
+    data3 = data[ data['Message_Size'] == 10240 ]
+    data4 = data[ data['Message_Size'] == 102400 ]
+    return [data1, data2, data3, data4]
+
+def format_label(size):
+    if int(size) == 100:
+        return '100B'
+    elif int(size) == 1024:
+        return '1KB'
+    elif int(size) == 10240:
+        return '10KB'
+    elif int(size) == 102400:
+        return '100KB'
+
 def get_label(row):
-    if int(row['Message_Size']) == 100:
-        size = '100B'
-    elif int(row['Message_Size']) == 1024:
-        size = '1KB'
-    elif int(row['Message_Size']) == 10240:
-        size = '10KB'
-    elif int(row['Message_Size']) == 102400:
-        size = '100KB'
-    return size + ' | ' + str(int(row['Producer_Rate'])) + ' m/s'
+    return str(int(row['Producer_Rate'])) + ' e/s'
 
-def plot_two_classes(data1, data2, row, label, title):
-    labels = list(data1.apply(get_label, axis=1))
+def subplot_cdf(data1, data2, row, title, autolimit=False):
+    fig, axs = plt.subplots(2, 2)
     
-    #plt.step(labels, data1[row], where='post', label=get_security(data1) )
-    #plt.step(labels, data2[row], where='post', label=get_security(data2))
-    plt.plot(labels, data1[row], label=get_security(data1) )
-    plt.plot(labels, data2[row], label=get_security(data2) )
-    
-    plt.legend()
-    plt.xticks(rotation=90)
-    plt.ylabel(label)
-    plt.title(title)
-    plt.grid(True)
-    plt.savefig(label + '.png', bbox_inches='tight')
+    spr1 = split_event_size(data1)
+    spr2 = split_event_size(data2)
+    a = 0
+    for i in range(2):
+        for j in range(2):
+            labels = list(spr1[i].apply(get_label, axis=1))
+            
+            lbl = 'Event Size = ' + format_label(spr1[a]['Message_Size'].iloc[0])
+            axs[i][j].plot(labels, spr1[a][row], label=get_security(spr1[a]) )
+            axs[i][j].plot(labels, spr2[a][row], label=get_security(spr2[a]) )
+
+            axs[i][j].set_yscale('log')
+            if autolimit:
+                axs[i][j].set_ylim(0.001, 1000)
+            else:
+                axs[i][j].set_ylim(1, 10000)
+            axs[i][j].set_title(lbl)
+            axs[i][j].legend()
+            axs[i][j].grid(True)
+            a += 1;
+
+    fig.suptitle(title)
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig(title + '.png', bbox_inches='tight')
     plt.clf()
-    print('Plot ' + label + '.png generated')
+    print('Plot ' + title + '.png generated')
 
 df = pd.read_csv('result_mean.csv')
 df1, df2 = get_dfs(df)
 
-plot_two_classes(df1, df2, 'OMB_Latency_50', 'Write Latency 50', 'OpenMessaging Benchmark: Secured vs Non-Securde')
-plot_two_classes(df1, df2, 'OMB_Latency_75', 'Write Latency 75', 'OpenMessaging Benchmark: Secured vs Non-Securde')
-plot_two_classes(df1, df2, 'OMB_Latency_95', 'Write Latency 95', 'OpenMessaging Benchmark: Secured vs Non-Securde')
-plot_two_classes(df1, df2, 'OMB_Latency_99', 'Write Latency 99', 'OpenMessaging Benchmark: Secured vs Non-Securde')
-plot_two_classes(df1, df2, 'OMB_Throughout', 'Throughout',       'OpenMessaging Benchmark: Secured vs Non-Securde')
-
-#-----------------------------------------------------------------------
-
-def transform_df(data):
-    res = {
-        'Latency': ['Latency 50', 'Latency 75', 'Latency 95', 'Latency 99'],
-        'Secure': [],
-        'Non-Secure': []
-    }
-    
-    row = data['OMB_Latency_50']
-    res['Non-Secure'].append( row.iloc[0] )
-    res['Secure'].append( row.iloc[1] )
-    row = data['OMB_Latency_75']
-    res['Non-Secure'].append( row.iloc[0] )
-    res['Secure'].append( row.iloc[1] )
-    row = data['OMB_Latency_95']
-    res['Non-Secure'].append( row.iloc[0] )
-    res['Secure'].append( row.iloc[1] )
-    row = data['OMB_Latency_99']
-    res['Non-Secure'].append( row.iloc[0] )
-    res['Secure'].append( row.iloc[1] )
-    return pd.DataFrame(res)
-
-def tc_12(data):
-    labels = ['50%', '75%', '95%', '99%']
-    
-    plt.plot(labels, data['Non-Secure'], label='Non-Secure')
-    plt.plot(labels, data['Secure'], label='Secure')
-    plt.ylabel('Write Latencies')
-    plt.title('Test Case: File Size 100KB and Producer Rate 10000 m/s')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig('TC12.png', bbox_inches='tight')
-    plt.clf()
-    print('Plot TC12.png generated')
-
-df = pd.read_csv('result_mean.csv')
-df = df[ df['Test_Case'] == 'TC12' ]
-res = transform_df(df)
-tc_12(res)
-
-#-----------------------------------------------------------------------
-
-def plot_cdf(data1, data2, row):
-    count, bins_count = np.histogram(data1[row], bins=10)
-    pdf = count / sum(count)
-    cdf = np.cumsum(pdf)
-    plt.plot(bins_count[1:], cdf, label='Non-Secured')
-
-    count, bins_count = np.histogram(data2[row], bins=10)
-    pdf = count / sum(count)
-    cdf = np.cumsum(pdf)
-    plt.plot(bins_count[1:], cdf, label='Secured')
-    
-    plt.legend()
-    plt.xlabel(row)
-    plt.title('Write Latencies CDF')
-    plt.grid(True)
-    
-    plt.savefig('CDF ' + row + '.png', bbox_inches='tight')
-    plt.clf()
-    print('Plot CDF ' + row + '.png generated')
-
-df = pd.read_csv('result.csv')
-df1, df2 = get_dfs(df)
-plot_cdf(df1, df2, 'OMB_Latency_50')
-plot_cdf(df1, df2, 'OMB_Latency_75')
-plot_cdf(df1, df2, 'OMB_Latency_95')
-plot_cdf(df1, df2, 'OMB_Latency_99')
+subplot_cdf(df1, df2, 'OMB_Latency_50', 'Write Latency 50 pct')
+subplot_cdf(df1, df2, 'OMB_Latency_75', 'Write Latency 75 pct')
+subplot_cdf(df1, df2, 'OMB_Latency_95', 'Write Latency 95 pct')
+subplot_cdf(df1, df2, 'OMB_Latency_99', 'Write Latency 99 pct')
+subplot_cdf(df1, df2, 'OMB_Throughout', 'Throughout', autolimit=True)
