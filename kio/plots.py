@@ -142,3 +142,56 @@ subplot_cdf(df1, df2, 'OMB_Latency_75', 'Write Latency 75 pct')
 subplot_cdf(df1, df2, 'OMB_Latency_95', 'Write Latency 95 pct')
 subplot_cdf(df1, df2, 'OMB_Latency_99', 'Write Latency 99 pct')
 subplot_cdf(df1, df2, 'OMB_Throughout', 'Throughout', autolimit=True)
+
+########################################################################
+# Percentiles
+########################################################################
+
+def format_label(size):
+    if int(size) == 100:
+        return '100B'
+    elif int(size) == 1024:
+        return '1KB'
+    elif int(size) == 10240:
+        return '10KB'
+    elif int(size) == 102400:
+        return '100KB'
+
+def get_title(data):
+    pr = data['Producer_Rate'].iloc[0]
+    mz = data['Message_Size'].iloc[0]
+    return 'Event Size ' + format_label(mz) + ' | Producer Rate ' + str(pr) + ' e/s'
+
+def plot_histogram(data, test_case, execution=1):
+    f1 = data[ (data['Test_Case'] == test_case) & (data['Execution'] == execution) & (data['Security'] == 'Non-Secure') ]
+    f2 = data[ (data['Test_Case'] == test_case) & (data['Execution'] == execution) & (data['Security'] == 'Secure') ]
+    title = get_title(f1)
+    
+    plt.scatter(f1['Latency'], f1['Percentile'], label='Non-Secure')
+    plt.scatter(f2['Latency'], f2['Percentile'], label='Secure')
+    
+    plt.xlabel('Write Latency (Ms)')
+    plt.ylabel('Percentile')
+    plt.xscale('log')
+    plt.xlim(0.1, 10000)
+    plt.legend()
+    plt.grid(True)
+    plt.title(title)
+    #plt.show()
+    plt.savefig(test_case + '.png', bbox_inches='tight')
+    plt.clf()
+    print('Plot ' + test_case + '.png generated')
+
+df = pd.read_csv('percentiles.csv')
+plot_histogram(df, 'TC01')
+plot_histogram(df, 'TC02')
+plot_histogram(df, 'TC03')
+plot_histogram(df, 'TC04')
+plot_histogram(df, 'TC05')
+plot_histogram(df, 'TC06')
+plot_histogram(df, 'TC07')
+plot_histogram(df, 'TC08')
+plot_histogram(df, 'TC09')
+plot_histogram(df, 'TC10')
+plot_histogram(df, 'TC11', execution=2)
+plot_histogram(df, 'TC12')
